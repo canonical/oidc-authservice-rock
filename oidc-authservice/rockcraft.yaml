@@ -45,3 +45,5 @@ parts:
       # Create a user in the $CRAFT_OVERLAY chroot
       groupadd -R $CRAFT_OVERLAY -g 1001 authservice
       useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g authservice authservice
+    override-prime: |
+      craftctl default
