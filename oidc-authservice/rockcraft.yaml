@@ -5,7 +5,7 @@ version: "ckf-1.7_22.04_1" # version format: <upstream-version>_<base-version>_<
 license: Apache-2.0
 base: ubuntu:22.04
 services:
-  jupyter:
+  oidc-authservice:
     override: replace
     summary: "oidc-auth service"
     startup: enabled
@@ -13,6 +13,7 @@ services:
     command: "/bin/oidc-authservice"
 platforms:
   amd64:
+
 parts:
   oidc-authservice:
     plugin: go
@@ -33,6 +34,7 @@ parts:
       (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
        dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
        > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+
     organize:
       opt/oidc-authservice/bin/oidc-authservice: usr/bin/oidc-authservice
       opt/oidc-authservice/web: web
