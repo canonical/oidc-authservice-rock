@@ -19,7 +19,7 @@ parts:
     plugin: go
     source: https://github.com/arrikto/oidc-authservice
     source-type: git
-    source-tag: master
+    source-commit: e2364397aaf1a8119aa649989f0de87276f58cbc
     build-snaps:
       - go
     build-environment:
