@@ -27,7 +27,7 @@ parts:
     override-build: |
       CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o bin/oidc-authservice
       install -D -m755 bin/oidc-authservice ${CRAFT_PART_INSTALL}/opt/oidc-authservice/bin/oidc-authservice
-      cp -R web ${CRAFT_PART_INSTALL}/opt/oidc-authservice/web 
+      cp -R web ${CRAFT_PART_INSTALL}/opt/oidc-authservice/web
 
       # security requirement
       mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
@@ -37,7 +37,6 @@ parts:
 
     organize:
       opt/oidc-authservice/bin/oidc-authservice: usr/bin/oidc-authservice
-      opt/oidc-authservice/web: web
 
   # not-root user for this ROCK should be 'authservice'
   non-root-user:
