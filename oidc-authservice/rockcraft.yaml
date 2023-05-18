@@ -1,0 +1,50 @@
+name: oidc-authservice 
+summary: Arrikto's oidc-authservice in a ROCK.
+description: "An AuthService is an HTTP Server that an API Gateway, asks if an incoming request is authorized."
+version: "ckf-1.7_22.04_1" # version format: <upstream-version>_<base-version>_<Charmed-KF-version>
+license: Apache-2.0
+base: ubuntu:22.04
+services:
+  oidc-authservice:
+    override: replace
+    summary: "oidc-auth service"
+    startup: enabled
+    user: authservice
+    command: "/bin/oidc-authservice"
+platforms:
+  amd64:
+
+parts:
+  oidc-authservice:
+    plugin: go
+    source: https://github.com/arrikto/oidc-authservice
+    source-type: git
+    source-commit: e2364397aaf1a8119aa649989f0de87276f58cbc
+    build-snaps:
+      - go
+    build-environment:
+      - BUILD_IN_CONTAINER: "false"
+    override-build: |
+      CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o bin/oidc-authservice
+      install -D -m755 bin/oidc-authservice ${CRAFT_PART_INSTALL}/opt/oidc-authservice/bin/oidc-authservice
+      cp -R web ${CRAFT_PART_INSTALL}/opt/oidc-authservice/web
+
+      # security requirement
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+       dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+
+    organize:
+      opt/oidc-authservice/bin/oidc-authservice: usr/bin/oidc-authservice
+
+  # not-root user for this ROCK should be 'authservice'
+  non-root-user:
+    plugin: nil
+    after: [oidc-authservice]
+    overlay-script: |
+      # Create a user in the $CRAFT_OVERLAY chroot
+      groupadd -R $CRAFT_OVERLAY -g 1001 authservice
+      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g authservice authservice
+    override-prime: |
+      craftctl default
