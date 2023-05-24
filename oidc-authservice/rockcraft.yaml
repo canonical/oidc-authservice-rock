@@ -33,7 +33,6 @@ parts:
       # https://github.com/canonical/rockcraft/pull/233
       sed -i 's/web\/templates\/default/\/home\/authservice\/web\/templates\/default/g' settings.go
 
-      # setup directories
       CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o bin/oidc-authservice
       install -D -m755 bin/oidc-authservice ${CRAFT_PART_INSTALL}/opt/oidc-authservice/bin/oidc-authservice
       cp -R web ${CRAFT_PART_INSTALL}/opt/oidc-authservice/web
@@ -64,4 +63,3 @@ parts:
       (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
        dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
        > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
-
