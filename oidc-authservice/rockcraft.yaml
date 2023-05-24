@@ -10,7 +10,7 @@ services:
     summary: "oidc-auth service"
     startup: enabled
     user: authservice
-    command: "/bin/oidc-authservice"
+    command: /home/authservice/oidc-authservice
 platforms:
   amd64:
 
@@ -24,27 +24,44 @@ parts:
       - go
     build-environment:
       - BUILD_IN_CONTAINER: "false"
+      - TEMPLATE_PATH: "/home/authservice/web/templates/default"
     override-build: |
+      set -e
+      # need to patch settings.go, because some artifacts required by workload are accessed via
+      # relative directory; enviroment variable TEMPLATE_PATH (above) is not respected either
+      # when run-as-user issue is fixed in rockcraft this should be revisited
+      # https://github.com/canonical/rockcraft/pull/233
+      sed -i 's/web\/templates\/default/\/home\/authservice\/web\/templates\/default/g' settings.go
+
+      # setup directories
       CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o bin/oidc-authservice
       install -D -m755 bin/oidc-authservice ${CRAFT_PART_INSTALL}/opt/oidc-authservice/bin/oidc-authservice
       cp -R web ${CRAFT_PART_INSTALL}/opt/oidc-authservice/web
 
-      # security requirement
-      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-       dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
-       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
-
     organize:
       opt/oidc-authservice/bin/oidc-authservice: usr/bin/oidc-authservice
+      opt/oidc-authservice/bin/oidc-authservice: home/authservice/oidc-authservice
+      opt/oidc-authservice/web: home/authservice/web
 
   # not-root user for this ROCK should be 'authservice'
   non-root-user:
     plugin: nil
-    after: [oidc-authservice]
     overlay-script: |
       # Create a user in the $CRAFT_OVERLAY chroot
+      mkdir -p $CRAFT_OVERLAY/etc
+      chmod 755 $CRAFT_OVERLAY/etc
       groupadd -R $CRAFT_OVERLAY -g 1001 authservice
       useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g authservice authservice
     override-prime: |
       craftctl default
+
+  security-requirements:
+    plugin: nil
+    after: [oidc-authservice]
+    override-build: |
+      # security requirement using `ubuntu-22.04` base
+      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
+      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
+       dpkg-query --root=${CRAFT_PROJECT_DIR}/../bundles/ubuntu-22.04/rootfs/ -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
+       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
+
