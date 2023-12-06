@@ -32,16 +32,9 @@ def test_rock(rock_test_env):
     """Test rock."""
     temp_dir, container_name = rock_test_env
     check_rock = CheckRock("rockcraft.yaml")
-    rock_image = check_rock.get_image_name()
+    rock_image = check_rock.get_name()
     rock_version = check_rock.get_version()
-    print(f"{rock_image=}")
-    print(f"{rock_version=}")
-    LOCAL_ROCK_IMAGE = f"{check_rock.get_image_name()}:{check_rock.get_version()}"
-
-    # TO-DO uncomment when updated chisme is published
-    #rock_services = check_rock.get_services()
-    #assert rock_services["mlserver-huggingface"]
-    #assert rock_services["mlserver-huggingface"]["startup"] == "enabled"
+    LOCAL_ROCK_IMAGE = f"{rock_image}:{rock_version}"
 
     # create ROCK filesystem
     subprocess.run(["docker", "run", LOCAL_ROCK_IMAGE, "exec", "ls", "-la", "/bin/oidc-authservice"], check=True)
