@@ -15,10 +15,13 @@ import yaml
 
 from charmed_kubeflow_chisme.rock import CheckRock
 
+
 @pytest.fixture()
 def rock_test_env(tmpdir):
     """Yields a temporary directory and random docker container name, then cleans them up after."""
-    container_name = "".join([str(i) for i in random.choices(string.ascii_lowercase, k=8)])
+    container_name = "".join(
+        [str(i) for i in random.choices(string.ascii_lowercase, k=8)]
+    )
     yield tmpdir, container_name
 
     try:
@@ -26,6 +29,7 @@ def rock_test_env(tmpdir):
     except Exception:
         pass
     # tmpdir fixture we use here should clean up the other files for us
+
 
 @pytest.mark.abort_on_fail
 def test_rock(rock_test_env):
@@ -37,4 +41,15 @@ def test_rock(rock_test_env):
     LOCAL_ROCK_IMAGE = f"{rock_image}:{rock_version}"
 
     # create ROCK filesystem
-    subprocess.run(["docker", "run", LOCAL_ROCK_IMAGE, "exec", "ls", "-la", "/bin/oidc-authservice"], check=True)
+    subprocess.run(
+        [
+            "docker",
+            "run",
+            LOCAL_ROCK_IMAGE,
+            "exec",
+            "ls",
+            "-la",
+            "/home/authservice/oidc-authservice",
+        ],
+        check=True,
+    )
