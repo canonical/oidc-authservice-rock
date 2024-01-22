@@ -1,21 +1,42 @@
+# Dockerfile: https://github.com/arrikto/oidc-authservice/blob/master/Dockerfile
 name: oidc-authservice 
 summary: Arrikto's oidc-authservice in a ROCK.
 description: "An AuthService is an HTTP Server that an API Gateway, asks if an incoming request is authorized."
-version: "ckf-1.7"
+version: "ckf-1.8"
 license: Apache-2.0
 base: ubuntu@22.04
+run-user: _daemon_
 services:
   oidc-authservice:
     override: replace
     summary: "oidc-auth service"
     startup: enabled
-    user: authservice
-    command: "/bin/oidc-authservice"
+    command: "/home/authservice/oidc-authservice"
+    working-dir: "/home/authservice"
 platforms:
   amd64:
 
 parts:
-  oidc-authservice:
+  create-workingdir:
+    # Create a working directory that the running service has write access in
+    # Creating this in the same place as the upstream's working dir to enable
+    # it to be a drop-in replacement
+    # Note: This must run after anything else that writes to /home/authservice,
+    #       otherwise those operations will clobber the permissions set here
+    # TODO: Should we instead just have a nil part that does a `chown -r` on
+    # $PRIME/home/authservice?
+    after: [builder, stager]
+    plugin: nil
+    override-build: |
+      mkdir -p $CRAFT_PART_INSTALL/home/authservice
+    permissions:
+      - path: home/authservice
+        # 584792 is the _daemon_ user
+        owner: 584792
+        group: 584792
+        mode: "755"
+
+  builder:
     plugin: go
     source: https://github.com/arrikto/oidc-authservice
     source-type: git
@@ -25,26 +46,25 @@ parts:
     build-environment:
       - BUILD_IN_CONTAINER: "false"
     override-build: |
-      CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o bin/oidc-authservice
-      install -D -m755 bin/oidc-authservice ${CRAFT_PART_INSTALL}/opt/oidc-authservice/bin/oidc-authservice
-      cp -R web ${CRAFT_PART_INSTALL}/opt/oidc-authservice/web
+      CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o oidc-authservice
+      mkdir -p $CRAFT_PART_INSTALL/home/authservice
+      cp oidc-authservice $CRAFT_PART_INSTALL/home/authservice/oidc-authservice
 
-      # security requirement
-      mkdir -p ${CRAFT_PART_INSTALL}/usr/share/rocks
-      (echo "# os-release" && cat /etc/os-release && echo "# dpkg-query" && \
-       dpkg-query -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n' -W) \
-       > ${CRAFT_PART_INSTALL}/usr/share/rocks/dpkg.query
-
-    organize:
-      opt/oidc-authservice/bin/oidc-authservice: usr/bin/oidc-authservice
-
-  # not-root user for this ROCK should be 'authservice'
-  non-root-user:
+  add-ca-certificates:
+    # This installs ca-certificates in the build env to populate our /etc/ssl/certs,
+    # then copies just the ca-certificates.crt to the final image
     plugin: nil
-    after: [oidc-authservice]
-    overlay-script: |
-      # Create a user in the $CRAFT_OVERLAY chroot
-      groupadd -R $CRAFT_OVERLAY -g 1001 authservice
-      useradd -R $CRAFT_OVERLAY -M -r -u 1001 -g authservice authservice
-    override-prime: |
-      craftctl default
+    build-packages: 
+      - ca-certificates
+    override-build: |-
+      mkdir -p $CRAFT_PART_INSTALL/etc/ssl/certs/
+      cp /etc/ssl/certs/ca-certificates.crt $CRAFT_PART_INSTALL/etc/ssl/certs/ca-certificates.crt
+
+  stager:
+    plugin: nil
+    source: https://github.com/arrikto/oidc-authservice
+    source-type: git
+    source-commit: e2364397aaf1a8119aa649989f0de87276f58cbc
+    override-build: |
+      mkdir -p $CRAFT_PART_INSTALL/home/authservice
+      cp -r web $CRAFT_PART_INSTALL/home/authservice/web
