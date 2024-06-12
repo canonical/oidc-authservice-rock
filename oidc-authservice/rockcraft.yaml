@@ -1,6 +1,6 @@
 # Dockerfile: https://github.com/arrikto/oidc-authservice/blob/master/Dockerfile
 name: oidc-authservice 
-summary: Arrikto's oidc-authservice in a ROCK.
+summary: Arrikto's oidc-authservice in a rock.
 description: "An AuthService is an HTTP Server that an API Gateway, asks if an incoming request is authorized."
 version: "ckf-1.8"
 license: Apache-2.0
