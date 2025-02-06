@@ -2,7 +2,7 @@
 name: oidc-authservice 
 summary: Arrikto's oidc-authservice in a rock.
 description: "An AuthService is an HTTP Server that an API Gateway, asks if an incoming request is authorized."
-version: "ckf-1.8"
+version: "ckf-1.9"
 license: Apache-2.0
 base: ubuntu@22.04
 run-user: _daemon_
