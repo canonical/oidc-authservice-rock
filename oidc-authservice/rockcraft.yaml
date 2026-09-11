@@ -17,24 +17,6 @@ platforms:
   amd64:
 
 parts:
-  create-workingdir:
-    # Create a working directory that the running service has write access in
-    # Creating this in the same place as the upstream's working dir to enable
-    # it to be a drop-in replacement
-    # Note: This must run after anything else that writes to /home/authservice,
-    #       otherwise those operations will clobber the permissions set here
-    # TODO: Should we instead just have a nil part that does a `chown -r` on
-    # $PRIME/home/authservice?
-    after: [builder, stager]
-    plugin: nil
-    override-build: |
-      mkdir -p $CRAFT_PART_INSTALL/home/authservice
-    permissions:
-      - path: home/authservice
-        # 584792 is the _daemon_ user
-        owner: 584792
-        group: 584792
-        mode: "755"
 
   builder:
     plugin: go
@@ -68,3 +50,13 @@ parts:
     override-build: |
       mkdir -p $CRAFT_PART_INSTALL/home/authservice
       cp -r web $CRAFT_PART_INSTALL/home/authservice/web
+
+  non-root-user:
+    plugin: nil
+    after: [builder, stager]
+    override-prime: |
+      craftctl default
+      install -d -o 584792 -g 584792 -m 755 \
+        home/authservice
+      install -d -o 584792 -g 584792 -m 770 \
+        etc/certs
